@@ -1,0 +1,1 @@
+from django.urls import path, includefrom . import viewsurlpatterns = [    path('auth/', include('accounts.urls')),    path('', views.home, name='home'),]
