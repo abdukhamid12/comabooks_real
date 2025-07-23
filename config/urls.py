@@ -1,1 +1,1 @@
-from django.urls import path, includefrom . import viewsurlpatterns = [    path('auth/', include('accounts.urls')),    path('', views.home, name='home'),]
+from django.urls import path, includefrom . import viewsfrom .views import create_coverurlpatterns = [    path('auth/', include('accounts.urls')),    path('', views.home, name='home'),    path('create-cover/', create_cover, name='create_cover'),]

@@ -1,5 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from PIL import Image, ImageDraw, ImageFont
+from io import BytesIO
+from django.core.files.base import ContentFile
+from django.utils.safestring import mark_safe
+
 
 # 1. Custom foydalanuvchi modeli
 class CustomUser(AbstractUser):
@@ -29,14 +34,19 @@ class BookTemplate(models.Model):
 
 # 4. Kitob jildi / tanlangan dizayn va muallif
 class BookCover(models.Model):
-    title = models.CharField(max_length=200)
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    author_book = models.CharField(max_length=255, blank=True, null=True)  # optional
-    dedication = models.ForeignKey(BookDedication, on_delete=models.SET_NULL, null=True)
-    template = models.ForeignKey(BookTemplate, on_delete=models.SET_NULL, null=True)
+    title = models.CharField(max_length=255)
+    author_book = models.CharField(max_length=255)
+    dedication = models.TextField(blank=True)
+    template = models.CharField(max_length=50)
+    cover_image = models.ImageField(upload_to="covers/", blank=True, null=True)
 
-    def __str__(self):
-        return self.title
+    def cover_preview(self):
+        if self.cover_image:
+            return mark_safe(f'<img src="{self.cover_image}" style="height: 300px; border: 1px solid #ccc;" />')
+        return "Нет изображения"
+
+    cover_preview.short_description = "Превью обложки"
+    cover_preview.allow_tags = True
 
 
 # 5. Kitobdagi har bir sahifaga savollar
