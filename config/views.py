@@ -1,9 +1,10 @@
 from django.contrib.auth.decorators import login_required
 import base64, uuid
 from django.core.files.base import ContentFile
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .forms import BookCoverForm
+from .forms import BookCoverForm, BookPageAnswerForm
+from .models import BookPageQuestion, BookPageAnswer
 
 
 @login_required
@@ -32,3 +33,23 @@ def create_cover(request):
     else:
         form = BookCoverForm()
         return render(request, "book_cover/create.html", {"form": form})
+
+@login_required
+def answer_question(request, question_id):
+    question = get_object_or_404(BookPageQuestion, id=question_id)
+
+    if request.method == 'POST':
+        form = BookPageAnswerForm(request.POST, request.FILES)
+        if form.is_valid():
+            answer = form.save(commit=False)
+            answer.user = request.user
+            answer.quiz = question
+            answer.save()
+            return redirect('answer_question', question_id=question.id)
+    else:
+        form = BookPageAnswerForm()
+
+    return render(request, 'book_pages/answer_questions.html', {
+        'form': form,
+        'question': question,
+    })

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import BookDedication, BookTemplate, BookCover
+from .models import BookDedication, BookTemplate, BookCover, BookPageQuestion, BookPageAnswer
 from django.utils.html import format_html
 
 
@@ -26,3 +26,26 @@ class BookCoverAdmin(admin.ModelAdmin):
         return "(No preview)"
 
     cover_preview.short_description = "Preview"
+
+
+@admin.register(BookPageQuestion)
+class BookPageQuestionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'short_quiz')
+    search_fields = ('quiz',)
+
+    def short_quiz(self, obj):
+        return obj.quiz[:50]
+
+    short_quiz.short_description = "Вопрос"
+
+
+@admin.register(BookPageAnswer)
+class BookPageAnswerAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'quiz', 'short_answer')
+    search_fields = ('answer',)
+    list_filter = ('user',)
+
+    def short_answer(self, obj):
+        return obj.answer[:50]
+
+    short_answer.short_description = "Ответ"
