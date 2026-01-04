@@ -3,8 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import FileResponse
 from .models import Book, BookPageAnswer, BookCover, BookPageQuestion
 from .forms import BookForm, BookPageForm
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
+from .utils import generate_book_pdf, send_telegram_notification
 import io
 import os
 from django.conf import settings
@@ -66,7 +65,7 @@ def edit_pages(request, book_id):
         current_answer = None
 
     if request.method == "POST":
-        form = BookPageForm(request.POST, instance=current_answer)
+        form = BookPageForm(request.POST, request.FILES, instance=current_answer)
         if form.is_valid():
             answer = form.save(commit=False)
             answer.book = book
@@ -97,125 +96,10 @@ def add_page(request, book_id):
     return redirect("edit_pages", book_id)
 
 
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Frame, PageTemplate, KeepTogether
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.colors import HexColor, white, black
-from reportlab.lib.units import inch
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
-
 @login_required
 def generate_pdf(request, book_id):
     book = get_object_or_404(Book, id=book_id, user=request.user)
-    
-    # Register Font
-    font_path = os.path.join(settings.BASE_DIR, 'static', 'fonts', 'arial.ttf')
-    pdfmetrics.registerFont(TTFont('Arial', font_path))
-
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=72,
-        leftMargin=72,
-        topMargin=72,
-        bottomMargin=72
-    )
-
-    # Styles
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name='CoverTitle', fontName='Arial', fontSize=36, leading=42, alignment=TA_CENTER, textColor=black, spaceAfter=20))
-    styles.add(ParagraphStyle(name='CoverSubtitle', fontName='Arial', fontSize=24, leading=30, alignment=TA_CENTER, textColor=HexColor('#555555'), spaceAfter=50))
-    styles.add(ParagraphStyle(name='CoverAuthor', fontName='Arial', fontSize=18, leading=24, alignment=TA_CENTER, textColor=HexColor('#333333')))
-    styles.add(ParagraphStyle(name='ChapterTitle', fontName='Arial', fontSize=24, leading=28, spaceAfter=20, textColor=HexColor('#2c3e50')))
-    styles.add(ParagraphStyle(name='QuestionText', fontName='Arial', fontSize=16, leading=20, spaceBefore=10, spaceAfter=15, textColor=HexColor('#8e44ad')))
-    styles.add(ParagraphStyle(name='AnswerText', fontName='Arial', fontSize=14, leading=20, alignment=TA_JUSTIFY, spaceAfter=20))
-
-    # Cover Page Renderer
-    def on_cover_page(canvas, doc):
-        canvas.saveState()
-        template = 'classic'
-        if hasattr(book, 'cover_data'):
-            template = book.cover_data.template
-            
-        width, height = A4
-        
-        if template == 'dark':
-            canvas.setFillColor(HexColor('#1a1a1a'))
-            canvas.rect(0, 0, width, height, fill=True)
-            # Adjust text colors for dark theme later manually or via style switch, 
-            # but simpler to just use a lighter box or standard styling for simplicity now
-            # For now, let's just do background. 
-            # Validating text color against background is complex in Platypus flow unless we use different styles.
-            # Let's keep text black on cover for Classic, but maybe White for Dark? 
-            # To change text color dynamically, we'd need dynamic styles.
-            
-        elif template == 'modern':
-            # Gradient-ish background (solid for PDF simplicity)
-            canvas.setFillColor(HexColor('#e0e7ff')) # Light Blue/Purple
-            canvas.rect(0, 0, width, height, fill=True)
-            
-        elif template == 'classic':
-            canvas.setFillColor(HexColor('#f4f1ea')) # Cream
-            canvas.rect(0, 0, width, height, fill=True)
-            # Add Border
-            canvas.setStrokeColor(HexColor('#8e44ad'))
-            canvas.setLineWidth(4)
-            canvas.rect(30, 30, width-60, height-60)
-
-        canvas.restoreState()
-
-    # Build Content
-    story = []
-
-    # -- Dynamic styles based on template for Cover Text --
-    # We can't easily change the style definition mid-stream for just one paragraph without defining multiple,
-    # so we will assume standard dark text is fine for Classic/Modern. 
-    # For Dark theme, we might want white text.
-    
-    cover_title_style = styles['CoverTitle']
-    cover_sub_style = styles['CoverSubtitle']
-    cover_auth_style = styles['CoverAuthor']
-
-    if hasattr(book, 'cover_data') and book.cover_data.template == 'dark':
-        cover_title_style.textColor = white
-        cover_sub_style.textColor = HexColor('#cccccc')
-        cover_auth_style.textColor = white
-
-    # Cover Content
-    story.append(Spacer(1, 2.5*inch))
-    story.append(Paragraph(book.title, cover_title_style))
-    if book.subtitle:
-        story.append(Paragraph(book.subtitle, cover_sub_style))
-    
-    story.append(Spacer(1, 1.5*inch))
-    story.append(Paragraph(f"Автор: {book.author}", cover_auth_style))
-    
-    if book.dedication:
-        story.append(Spacer(1, 0.5*inch))
-        story.append(Paragraph(f"Посвящается: {book.dedication.name}", cover_auth_style))
-    
-    story.append(PageBreak())
-
-    # Pages Content
-    pages = book.pages.all()
-    for page in pages:
-        # Group Question and Answer to keep together
-        # And ensure one Q per page (by adding PageBreak after)
-        
-        qa_block = [
-            Paragraph(page.quiz, styles['QuestionText']),
-            Paragraph(page.answer.replace('\n', '<br/>'), styles['AnswerText'])
-        ]
-        
-        story.append(KeepTogether(qa_block))
-        story.append(PageBreak())
-
-    # Build
-    doc.build(story, onFirstPage=on_cover_page)
-    buffer.seek(0)
-    
+    buffer = generate_book_pdf(book)
     filename = f"{book.title}.pdf"
     return FileResponse(buffer, as_attachment=True, filename=filename)
 
@@ -226,4 +110,13 @@ def finish_book(request, book_id):
     if request.method == "POST":
         book.status = 'completed'
         book.save()
+        
+        # Send Telegram Notification
+        try:
+            pdf_buffer = generate_book_pdf(book)
+            send_telegram_notification(book, pdf_buffer)
+        except Exception as e:
+            print(f"Error sending notification: {e}")
+            # Don't block user flow if notification fails
+            
     return redirect("dashboard")

@@ -29,7 +29,8 @@ class BookForm(forms.ModelForm):
 class BookPageForm(forms.ModelForm):
     class Meta:
         model = BookPageAnswer
-        fields = ['answer']
+        fields = ['answer', 'image']
         widgets = {
             'answer': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': 'Ваш ответ...', 'id': 'id_answer'}),
+            'image': forms.ClearableFileInput(attrs={'class': 'form-control', 'id': 'id_image'}),
         }

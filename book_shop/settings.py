@@ -104,7 +104,14 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
+
 USE_TZ = True
+
+
+# Telegram Bot Settings
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '8203710158:AAHST2ESxwhJvbtuC1fTPwgCqo54L2hLW3c')
+TELEGRAM_ADMIN_CHAT_ID = os.environ.get('TELEGRAM_ADMIN_CHAT_ID', '1037348868')
+
 
 
 # Static files (CSS, JavaScript, Images)

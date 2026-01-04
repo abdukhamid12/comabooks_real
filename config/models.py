@@ -58,6 +58,7 @@ class BookPageAnswer(models.Model):
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="pages", null=True, blank=True)
     quiz = models.CharField(max_length=255, verbose_name="Вопрос")
     answer = models.TextField(verbose_name="Ответ")
+    image = models.ImageField(upload_to="book_images/", blank=True, null=True, verbose_name="Фотография")
     
     def __str__(self):
         return f"{self.quiz[:20]} - {self.answer[:20]}"
