@@ -1,17 +1,16 @@
 from django.contrib import admin
-from .models import BookDedication, BookTemplate, BookCover, BookPageQuestion, BookPageAnswer
+from .models import BookDedication, BookCover, BookPageQuestion, BookPageAnswer, Book
 from django.utils.html import format_html
+
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    list_display = ['title', 'user', 'status', 'created_at']
+    list_filter = ['status']
 
 
 @admin.register(BookDedication)
 class BookDedicationAdmin(admin.ModelAdmin):
     list_display = ['id', 'name']
-    search_fields = ['name']
-
-
-@admin.register(BookTemplate)
-class BookTemplateAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'image']
     search_fields = ['name']
 
 
@@ -30,8 +29,9 @@ class BookCoverAdmin(admin.ModelAdmin):
 
 @admin.register(BookPageQuestion)
 class BookPageQuestionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'short_quiz')
+    list_display = ('id', 'short_quiz', 'dedication')
     search_fields = ('quiz',)
+    list_filter = ('dedication',)
 
     def short_quiz(self, obj):
         return obj.quiz[:50]

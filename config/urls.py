@@ -1,1 +1,12 @@
-from django.urls import path, includefrom . import viewsfrom .views import create_coverfrom .views import answer_questionurlpatterns = [    path('auth/', include('accounts.urls')),    path('', views.home, name='home'),    path('create-cover/', create_cover, name='create_cover'),    path('answers/<int:question_id>/', views.answer_question, name='answer_question'),]
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path("", views.home, name="home"),
+    path("dashboard/", views.dashboard, name="dashboard"),
+    path("create/", views.create_book, name="create_book"),
+    path("book/<int:book_id>/edit/", views.edit_pages, name="edit_pages"),
+    path("book/<int:book_id>/add_page/", views.add_page, name="add_page"),
+    path("book/<int:book_id>/generate_pdf/", views.generate_pdf, name="generate_pdf"),
+    path("book/<int:book_id>/finish/", views.finish_book, name="finish_book"),
+]

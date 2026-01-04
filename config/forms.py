@@ -1,1 +1,35 @@
-from django import formsfrom .models import BookCover, BookPageAnswerTEMPLATE_CHOICES = [    ('classic', 'Классический'),    ('dark', 'Тёмный'),    ('modern', 'Современный'),]class BookCoverForm(forms.ModelForm):    template = forms.ChoiceField(choices=TEMPLATE_CHOICES, widget=forms.Select())    cover_image = forms.CharField(widget=forms.HiddenInput())    class Meta:        model = BookCover        fields = ['title', 'author_book', 'dedication', 'template', 'cover_image']class BookPageAnswerForm(forms.ModelForm):    class Meta:        model = BookPageAnswer        fields = ['answer', 'image']        widgets = {            'answer': forms.Textarea(attrs={                'class': 'form-control',                'placeholder': 'Javobingizni shu yerga yozing...',                'rows': 4,            }),            'image': forms.ClearableFileInput(attrs={                'class': 'form-control',            }),        }        labels = {            'answer': 'Sizning javobingiz',            'image': 'Agar rasm yuklamoqchi bo‘lsangiz, tanlang (ixtiyoriy)',        }
+from django import forms
+from .models import Book, BookPageAnswer, BookCover, BookDedication
+
+class BookForm(forms.ModelForm):
+    # Include fields for the cover directly here for simpler UI or handle separately
+    template = forms.ChoiceField(
+        choices=[
+            ('classic', 'Классический'),
+            ('dark', 'Тёмный'),
+            ('modern', 'Современный'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_template'}),
+        label="Стиль оформления"
+    )
+
+    class Meta:
+        model = Book
+        fields = ['title', 'author', 'dedication', 'subtitle']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Название книги', 'id': 'id_title'}),
+            'author': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Автор', 'id': 'id_author'}),
+            'subtitle': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Подзаголовок', 'id': 'id_subtitle'}),
+            'dedication': forms.Select(attrs={'class': 'form-select'}),
+        }
+        labels = {
+            'dedication': 'Кому посвящается'
+        }
+
+class BookPageForm(forms.ModelForm):
+    class Meta:
+        model = BookPageAnswer
+        fields = ['answer']
+        widgets = {
+            'answer': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': 'Ваш ответ...', 'id': 'id_answer'}),
+        }

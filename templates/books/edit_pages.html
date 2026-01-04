@@ -1,0 +1,124 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<div class="container-fluid" style="height: calc(100vh - 76px);">
+    <div class="row h-100">
+        <!-- Sidebar: Questions List -->
+        <div class="col-md-3 bg-light border-end overflow-auto p-0">
+            <div class="p-3 border-bottom">
+                <h5 class="mb-0">Вопросы</h5>
+                <small class="text-muted">{{ book.title }}</small>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for q in questions %}
+                <a href="?q={{ q.id }}"
+                    class="list-group-item list-group-item-action {% if active_question.id == q.id %}active{% endif %}">
+                    {{ q.quiz|truncatechars:40 }}
+                </a>
+                {% empty %}
+                <div class="p-3">Нет вопросов для этой категории.</div>
+                {% endfor %}
+            </div>
+            <div class="p-3 border-top mt-auto">
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-100">Сохранить и выйти</a>
+            </div>
+        </div>
+
+        <!-- Main Area: Form and Preview -->
+        <div class="col-md-9 d-flex flex-column p-0">
+            {% if active_question %}
+            <div class="row h-100 g-0">
+                <!-- Form -->
+                <div class="col-md-6 p-5 d-flex flex-column justify-content-center border-end">
+                    <h3 class="mb-4">{{ active_question.quiz }}</h3>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="submit" class="btn btn-primary px-4">Сохранить и далее</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Live Preview -->
+                <div class="col-md-6 p-5 d-flex align-items-center justify-content-center bg-secondary bg-opacity-10">
+                    <div class="book-page-preview {{ book.cover_data.template }}">
+                        <div class="page-content">
+                            <h4 class="question-text">{{ active_question.quiz }}</h4>
+                            <p class="answer-text" id="preview-answer">Ваш ответ появится здесь...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="d-flex align-items-center justify-content-center h-100">
+                <div class="text-center">
+                    <h3>Выберите вопрос слева</h3>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .book-page-preview {
+        width: 100%;
+        max-width: 450px;
+        aspect-ratio: 2/3;
+        background: white;
+        padding: 3rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        border-radius: 4px;
+    }
+
+    .question-text {
+        font-weight: bold;
+        margin-bottom: 2rem;
+        color: #333;
+    }
+
+    .answer-text {
+        font-family: 'Georgia', serif;
+        font-size: 1.1rem;
+        color: #555;
+        white-space: pre-wrap;
+    }
+
+    /* Styles matching Cover */
+    .book-page-preview.dark {
+        background: #1a1a1a;
+        color: #ddd;
+    }
+
+    .book-page-preview.dark .question-text {
+        color: #f1c40f;
+    }
+
+    .book-page-preview.dark .answer-text {
+        color: #ccc;
+    }
+
+    .book-page-preview.modern {
+        border-top: 5px solid #667eea;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const answerInput = document.getElementById('id_answer');
+        const previewAnswer = document.getElementById('preview-answer');
+
+        if (answerInput) {
+            answerInput.addEventListener('input', function () {
+                previewAnswer.textContent = this.value || 'Ваш ответ появится здесь...';
+            });
+            // Init
+            if (answerInput.value) previewAnswer.textContent = answerInput.value;
+        }
+    });
+</script>
+{% endblock %}

@@ -1,68 +1,75 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from PIL import Image, ImageDraw, ImageFont
-from io import BytesIO
-from django.core.files.base import ContentFile
-from django.utils.safestring import mark_safe
+from django.conf import settings
 
-
-# 1. Custom foydalanuvchi modeli
+# 1. Пользователь
 class CustomUser(AbstractUser):
-    phone = models.CharField(max_length=13)
-    telegram_username_or_phone = models.CharField(max_length=150, blank=True, null=True)
+    pass
 
-    def __str__(self):
-        return self.username
-
-
-# 2. Kitob bag'ishlov (dedication)
+# 2. Посвящение
 class BookDedication(models.Model):
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=255, verbose_name="Имя")
+    text = models.TextField(verbose_name="Текст посвящения")
 
     def __str__(self):
         return self.name
 
+# 3. Шаблон книги - REMOVED, using choices instead
+# class BookTemplate(models.Model): ...
 
-# 3. Shablon rasmlar
-class BookTemplate(models.Model):
-    name = models.CharField(max_length=200)
-    image = models.ImageField(upload_to='templates/')
+TEMPLATE_CHOICES = [
+    ('classic', 'Классический'),
+    ('dark', 'Тёмный'),
+    ('modern', 'Современный'),
+]
 
-    def __str__(self):
-        return self.name
+# ...
 
-
-# 4. Kitob jildi / tanlangan dizayn va muallif
-class BookCover(models.Model):
-    title = models.CharField(max_length=255)
-    author_book = models.CharField(max_length=255)
-    dedication = models.TextField(blank=True)
-    template = models.CharField(max_length=50)
-    cover_image = models.ImageField(upload_to="covers/", blank=True, null=True)
-
-    def cover_preview(self):
-        if self.cover_image:
-            return mark_safe(f'<img src="{self.cover_image}" style="height: 300px; border: 1px solid #ccc;" />')
-        return "Нет изображения"
-
-    cover_preview.short_description = "Превью обложки"
-    cover_preview.allow_tags = True
-
-
-# 5. Kitobdagi har bir sahifaga savollar
+# 4. Вопрос (для каталога вопросов)
 class BookPageQuestion(models.Model):
-    quiz = models.TextField()
+    dedication = models.ForeignKey(BookDedication, on_delete=models.CASCADE, related_name="questions", null=True, blank=True, verbose_name="Для кого (посвящение)")
+    quiz = models.CharField(max_length=255, verbose_name="Вопрос")
 
     def __str__(self):
-        return f"Quiz: {self.quiz[:30]}..."
+        return f"{self.quiz} ({self.dedication.name if self.dedication else 'Общий'})"
 
+# 5. Главная книга
+class Book(models.Model):
+    STATUS_CHOICES = [
+        ('draft', 'Черновик'),
+        ('completed', 'Завершено (Ждет проверки)'),
+        ('printed', 'Напечатано'),
+    ]
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="books")
+    title = models.CharField(max_length=255, verbose_name="Название книги")
+    author = models.CharField(max_length=255, verbose_name="Автор")
+    subtitle = models.CharField(max_length=255, blank=True, null=True, verbose_name="Подзаголовок")
+    dedication = models.ForeignKey(BookDedication, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Посвящение")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name="Статус")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.title} ({self.user.username})"
 
-# 6. Foydalanuvchining sahifaga yozgan javobi
+# 6. Ответ на вопрос (страница книги)
 class BookPageAnswer(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    quiz = models.ForeignKey(BookPageQuestion, on_delete=models.CASCADE)
-    answer = models.TextField()
-    image = models.ImageField(upload_to='bookpage/', blank=True, null=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="pages", null=True, blank=True)
+    quiz = models.CharField(max_length=255, verbose_name="Вопрос")
+    answer = models.TextField(verbose_name="Ответ")
+    
+    def __str__(self):
+        return f"{self.quiz[:20]} - {self.answer[:20]}"
+
+
+# 7. Обложка
+class BookCover(models.Model):
+    title = models.CharField(max_length=255, verbose_name="Заголовок на обложке")
+    author_book = models.CharField(max_length=255, verbose_name="Автор на обложке")
+    template = models.CharField(max_length=50, choices=TEMPLATE_CHOICES, default='classic', verbose_name="Шаблон")
+    cover_image = models.ImageField(upload_to="covers/", blank=True, null=True)
+    book = models.OneToOneField(Book, on_delete=models.CASCADE, related_name="cover_data", null=True, blank=True)
 
     def __str__(self):
-        return f"Answer by {self.user.username} to quiz {self.quiz.id}"
+        return self.title

@@ -1,0 +1,55 @@
+{% extends "_base.html" %}
+{% load static %}
+
+{% block content %}
+<section class="hero-section text-center d-flex align-items-center justify-content-center"
+    style="min-height: 80vh; background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);">
+    <div class="container">
+        <h1 class="display-3 fw-bold mb-4">Стань автором своей книги</h1>
+        <p class="lead mb-5 text-muted">Посвяти книгу своим близким. Создай уникальную историю, которая останется
+            навсегда.</p>
+
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{% url 'create_book' %}" class="btn btn-primary btn-lg">Создать книгу</a>
+            <a href="#reviews" class="btn btn-secondary btn-lg">Читать отзывы</a>
+        </div>
+    </div>
+</section>
+
+<section id="reviews" class="py-5 bg-darker">
+    <div class="container">
+        <h2 class="text-center mb-5">Отзывы наших авторов</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card p-4">
+                    <p class="card-text">"Это было невероятно! Я создала книгу для своей мамы на юбилей, и она плакала
+                        от счастья."</p>
+                    <h5 class="mt-3 card-title">- Анна С.</h5>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-4">
+                    <p class="card-text">"Очень удобный сервис. Вопросы помогли мне вспомнить самые теплые моменты
+                        детства."</p>
+                    <h5 class="mt-3 card-title">- Дмитрий К.</h5>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-4">
+                    <p class="card-text">"Качество печати и дизайн обложки превзошли все ожидания. Спасибо BookShop!"
+                    </p>
+                    <h5 class="mt-3 card-title">- Елена М.</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 text-center">
+    <div class="container">
+        <h2 class="mb-4">Готовы начать?</h2>
+        <p class="text-muted mb-4">Присоединяйтесь к тысячам людей, которые уже сохранили свою историю.</p>
+        <a href="{% url 'create_book' %}" class="btn btn-primary btn-lg">Начать сейчас</a>
+    </div>
+</section>
+{% endblock %}

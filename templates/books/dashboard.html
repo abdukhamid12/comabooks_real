@@ -1,0 +1,33 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Ваши книги</h2>
+    <a href="{% url 'create_book' %}" class="btn btn-primary mb-3">Создать новую книгу</a>
+
+    <div class="row">
+        {% for book in books %}
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">{{ book.title }}</h5>
+                    <p class="card-text">{{ book.author }}</p>
+                    <a href="{% url 'edit_pages' book.id %}" class="btn btn-secondary">Заполнить книгу</a>
+                    <a href="{% url 'generate_pdf' book.id %}" class="btn btn-success">Скачать PDF</a>
+                    {% if book.status == 'draft' %}
+                    <form action="{% url 'finish_book' book.id %}" method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning">Отправить на проверку</button>
+                    </form>
+                    {% else %}
+                    <span class="badge bg-success">На проверке</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p>У вас пока нет книг.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

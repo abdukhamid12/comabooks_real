@@ -1,0 +1,142 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Создание книги</h2>
+    <div class="row">
+        <!-- Form Column -->
+        <div class="col-md-6">
+            <div class="card p-4">
+                <form method="post" id="createBookForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ form.title.id_for_label }}" class="form-label">Название книги</label>
+                        {{ form.title }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.author.id_for_label }}" class="form-label">Автор</label>
+                        {{ form.author }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.subtitle.id_for_label }}" class="form-label">Подзаголовок</label>
+                        {{ form.subtitle }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.dedication.id_for_label }}" class="form-label">Кому посвящается</label>
+                        {{ form.dedication }}
+                        <div class="form-text">Мы подберем вопросы специально для выбранного человека.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.template.id_for_label }}" class="form-label">Стиль оформления</label>
+                        {{ form.template }}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mt-3">Создать и перейти к вопросам</button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary w-100 mt-2">Отмена</a>
+                </form>
+            </div>
+        </div>
+
+        <!-- Preview Column -->
+        <div class="col-md-6">
+            <div class="sticky-top" style="top: 2rem; z-index: 1;">
+                <h4 class="text-center mb-3">Предпросмотр обложки</h4>
+                <div id="preview-card" class="book-cover-preview classic">
+                    <div class="cover-content">
+                        <h1 id="preview-title">Название книги</h1>
+                        <h3 id="preview-subtitle" class="mt-2"></h3>
+                        <p id="preview-author" class="mt-4">Автор</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .book-cover-preview {
+        width: 100%;
+        max-width: 400px;
+        aspect-ratio: 2/3;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 2rem;
+        box-shadow: 10px 10px 30px rgba(0, 0, 0, 0.5);
+        border-radius: 4px;
+        transition: all 0.5s ease;
+        background-color: #fff;
+        color: #000;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Styles */
+    .book-cover-preview.classic {
+        background: #f4f1ea;
+        color: #2c3e50;
+        border: 2px solid #8e44ad;
+    }
+
+    .book-cover-preview.classic h1 {
+        font-family: 'Georgia', serif;
+        font-weight: bold;
+    }
+
+    .book-cover-preview.dark {
+        background: #1a1a1a;
+        color: #f1c40f;
+        border: 2px solid #f1c40f;
+    }
+
+    .book-cover-preview.dark h1 {
+        font-family: 'Outfit', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .book-cover-preview.modern {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+    }
+
+    .book-cover-preview.modern h1 {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 300;
+        font-size: 2.5rem;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const titleInput = document.getElementById('id_title');
+        const authorInput = document.getElementById('id_author');
+        const subtitleInput = document.getElementById('id_subtitle');
+        const templateSelect = document.getElementById('id_template');
+
+        const previewTitle = document.getElementById('preview-title');
+        const previewAuthor = document.getElementById('preview-author');
+        const previewSubtitle = document.getElementById('preview-subtitle');
+        const previewCard = document.getElementById('preview-card');
+
+        function updatePreview() {
+            previewTitle.textContent = titleInput.value || 'Название книги';
+            previewAuthor.textContent = authorInput.value || 'Автор';
+            previewSubtitle.textContent = subtitleInput.value || '';
+
+            // Update Class
+            previewCard.className = 'book-cover-preview ' + templateSelect.value;
+        }
+
+        titleInput.addEventListener('input', updatePreview);
+        authorInput.addEventListener('input', updatePreview);
+        subtitleInput.addEventListener('input', updatePreview);
+        templateSelect.addEventListener('change', updatePreview);
+
+        // Init
+        updatePreview();
+    });
+</script>
+{% endblock %}
