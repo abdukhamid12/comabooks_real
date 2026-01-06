@@ -9,4 +9,5 @@ urlpatterns = [
     path("book/<int:book_id>/add_page/", views.add_page, name="add_page"),
     path("book/<int:book_id>/generate_pdf/", views.generate_pdf, name="generate_pdf"),
     path("book/<int:book_id>/finish/", views.finish_book, name="finish_book"),
+    path("book/<int:book_id>/delete/", views.delete_book, name="delete_book"),
 ]

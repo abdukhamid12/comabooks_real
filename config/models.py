@@ -72,5 +72,17 @@ class BookCover(models.Model):
     cover_image = models.ImageField(upload_to="covers/", blank=True, null=True)
     book = models.OneToOneField(Book, on_delete=models.CASCADE, related_name="cover_data", null=True, blank=True)
 
+# 8. Отзывы
+class Review(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Пользователь")
+    book = models.ForeignKey(Book, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Книга")
+    text = models.TextField(verbose_name="Текст отзыва")
+    rating = models.IntegerField(default=5, verbose_name="Оценка (1-5)")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+
+    class Meta:
+        verbose_name = "Отзыв"
+        verbose_name_plural = "Отзывы"
+
     def __str__(self):
-        return self.title
+        return f"Отзыв от {self.user.username} ({self.rating}/5)"

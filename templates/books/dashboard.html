@@ -22,6 +22,12 @@
                     {% else %}
                     <span class="badge bg-success">На проверке</span>
                     {% endif %}
+
+                    <form action="{% url 'delete_book' book.id %}" method="post" class="d-inline"
+                        onsubmit="return confirm('Вы уверены, что хотите удалить эту книгу?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                    </form>
                 </div>
             </div>
         </div>

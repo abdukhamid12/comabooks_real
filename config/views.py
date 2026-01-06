@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import FileResponse
-from .models import Book, BookPageAnswer, BookCover, BookPageQuestion
+from .models import Book, BookPageAnswer, BookCover, BookPageQuestion, Review
 from .forms import BookForm, BookPageForm
 from .utils import generate_book_pdf, send_telegram_notification
 import io
@@ -9,7 +9,8 @@ import os
 from django.conf import settings
 
 def home(request):
-    return render(request, "home.html")
+    reviews = Review.objects.all().order_by('-created_at')[:6]
+    return render(request, "home.html", {"reviews": reviews})
 
 @login_required
 def dashboard(request):
@@ -119,4 +120,12 @@ def finish_book(request, book_id):
             print(f"Error sending notification: {e}")
             # Don't block user flow if notification fails
             
+    return redirect("dashboard")
+
+
+@login_required
+def delete_book(request, book_id):
+    book = get_object_or_404(Book, id=book_id, user=request.user)
+    if request.method == "POST":
+        book.delete()
     return redirect("dashboard")

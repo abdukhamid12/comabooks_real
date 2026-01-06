@@ -1,6 +1,17 @@
 from django.contrib import admin
-from .models import BookDedication, BookCover, BookPageQuestion, BookPageAnswer, Book
+from django.contrib.auth.admin import UserAdmin
+from .models import BookDedication, BookCover, BookPageQuestion, BookPageAnswer, Book, CustomUser, Review
 from django.utils.html import format_html
+
+@admin.register(CustomUser)
+class CustomUserAdmin(UserAdmin):
+    pass
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('user', 'book', 'rating', 'created_at')
+    list_filter = ('rating', 'created_at')
+    search_fields = ('user__username', 'text')
 
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
