@@ -15,22 +15,21 @@ class Command(BaseCommand):
             return
 
         try:
-            # Send completed books on startup
+            # Send the latest completed book on startup
             admin_chat_id = settings.TELEGRAM_ADMIN_CHAT_ID
-            books = Book.objects.filter(status='completed').order_by('-created_at')
-            if books.exists():
+            latest_book = Book.objects.filter(status='completed').order_by('-created_at').first()
+            if latest_book:
                 requests.post(
                     f"https://api.telegram.org/bot{token}/sendMessage",
-                    data={'chat_id': admin_chat_id, 'text': f"🚀 Bot started! Sending {books.count()} completed books..."},
+                    data={'chat_id': admin_chat_id, 'text': f"🚀 Bot started! Sending latest completed book: {latest_book.title}"},
                     verify=False
                 )
-                for book in books:
-                    self.stdout.write(f"Sending book on startup: {book.title}")
-                    try:
-                        pdf_buffer = generate_book_pdf(book)
-                        send_telegram_notification(book, pdf_buffer, target_chat_id=admin_chat_id)
-                    except Exception as e:
-                        self.stdout.write(self.style.ERROR(f"Error sending {book.title} on startup: {e}"))
+                self.stdout.write(f"Sending book on startup: {latest_book.title}")
+                try:
+                    pdf_buffer = generate_book_pdf(latest_book)
+                    send_telegram_notification(latest_book, pdf_buffer, target_chat_id=admin_chat_id)
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f"Error sending {latest_book.title} on startup: {e}"))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Failed to send startup books: {e}"))
         
@@ -72,31 +71,29 @@ class Command(BaseCommand):
 
                                 self.stdout.write(self.style.SUCCESS(f"Authorized /start from {chat_id}"))
                                 
-                                # Send Welcome Message
+                                # Send Response Message
                                 requests.post(
                                     f"https://api.telegram.org/bot{token}/sendMessage",
-                                    data={'chat_id': chat_id, 'text': "📚 Sending all completed books..."},
+                                    data={'chat_id': chat_id, 'text': "📚 Sending the latest completed book..."},
                                     verify=False
                                 )
                                 
-                                # Fetch Completed Books
-                                books = Book.objects.filter(status='completed').order_by('-created_at')
-                                count = books.count()
+                                # Fetch Latest Completed Book
+                                latest_book = Book.objects.filter(status='completed').order_by('-created_at').first()
                                 
-                                if count == 0:
+                                if not latest_book:
                                     requests.post(
                                         f"https://api.telegram.org/bot{token}/sendMessage",
                                         data={'chat_id': chat_id, 'text': "No completed books found."},
                                         verify=False
                                     )
-                                
-                                for book in books:
-                                    self.stdout.write(f"Sending book: {book.title}")
+                                else:
+                                    self.stdout.write(f"Sending book: {latest_book.title}")
                                     try:
-                                        pdf_buffer = generate_book_pdf(book)
-                                        send_telegram_notification(book, pdf_buffer, target_chat_id=chat_id)
+                                        pdf_buffer = generate_book_pdf(latest_book)
+                                        send_telegram_notification(latest_book, pdf_buffer, target_chat_id=chat_id)
                                     except Exception as e:
-                                        self.stdout.write(self.style.ERROR(f"Error sending {book.title}: {e}"))
+                                        self.stdout.write(self.style.ERROR(f"Error sending {latest_book.title}: {e}"))
             
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"Polling error: {e}"))

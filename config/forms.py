@@ -7,7 +7,7 @@ class BookForm(forms.ModelForm):
         choices=[
             ('classic', 'Классический'),
             ('dark', 'Тёмный'),
-            ('modern', 'Современный'),
+            ('modern', 'Минималистичный'),
         ],
         widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_template'}),
         label="Стиль оформления"

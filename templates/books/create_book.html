@@ -98,14 +98,28 @@
     }
 
     .book-cover-preview.modern {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #fff;
+        background: #FDFBF7;
+        color: #333;
+        border: 1px solid #333;
+        position: relative;
+    }
+
+    .book-cover-preview.modern::after {
+        content: '';
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        right: 5px;
+        bottom: 5px;
+        border: 0.5px solid #333;
+        pointer-events: none;
     }
 
     .book-cover-preview.modern h1 {
         font-family: 'Outfit', sans-serif;
-        font-weight: 300;
-        font-size: 2.5rem;
+        font-weight: 400;
+        font-size: 2.2rem;
+        letter-spacing: 1px;
     }
 </style>
 

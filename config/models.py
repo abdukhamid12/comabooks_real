@@ -20,7 +20,7 @@ class BookDedication(models.Model):
 TEMPLATE_CHOICES = [
     ('classic', 'Классический'),
     ('dark', 'Тёмный'),
-    ('modern', 'Современный'),
+    ('modern', 'Минималистичный'),
 ]
 
 # ...

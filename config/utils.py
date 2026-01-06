@@ -66,14 +66,16 @@ def generate_book_pdf(book):
                 canvas.circle(x, y, size, stroke=0, fill=1)
                 
         elif template == 'modern':
-            # Soft Graduate background
-            canvas.setFillColor(HexColor('#ffffff'))
+            # Soft Cream/Beige background
+            canvas.setFillColor(HexColor('#FDFBF7')) 
             canvas.rect(0, 0, width, height, fill=True)
-            # Modern geometric accent
-            canvas.setFillColor(HexColor('#f3f4f6'))
-            canvas.rect(width*0.7, 0, width*0.3, height, fill=True)
-            canvas.setFillColor(HexColor('#3b82f6')) # Vibrant Indigo
-            canvas.rect(0, height-15, width, 15, fill=True)
+            
+            # Elegant thin double border
+            canvas.setStrokeColor(HexColor('#333333'))
+            canvas.setLineWidth(0.8)
+            canvas.rect(50, 50, width-100, height-100, stroke=1, fill=0)
+            canvas.setLineWidth(0.3)
+            canvas.rect(55, 55, width-110, height-110, stroke=1, fill=0)
             
         elif template == 'classic':
             canvas.setFillColor(HexColor('#fdfaf6')) # Antique Cream
@@ -130,38 +132,72 @@ def generate_book_pdf(book):
     # Build Content
     story = []
 
-    # Styles lookup
-    cover_title_style = styles['CoverTitle']
-    cover_sub_style = styles['CoverSubtitle']
-    cover_auth_style = styles['CoverAuthor']
+    # Dedicated Cover Styles (Explicitly defined to prevent leakage)
+    cover_title_style = ParagraphStyle(
+        name='CoverTitleDedicated',
+        fontName=font_name,
+        fontSize=36,
+        leading=48,
+        alignment=TA_CENTER,
+        textColor=black,
+        spaceAfter=30,
+        leftIndent=0
+    )
+    cover_sub_style = ParagraphStyle(
+        name='CoverSubtitleDedicated',
+        fontName=font_name,
+        fontSize=24,
+        leading=30,
+        alignment=TA_CENTER,
+        textColor=HexColor('#555555'),
+        spaceAfter=50,
+        leftIndent=0
+    )
+    cover_auth_style = ParagraphStyle(
+        name='CoverAuthorDedicated',
+        fontName=font_name,
+        fontSize=18,
+        leading=24,
+        alignment=TA_CENTER,
+        textColor=HexColor('#333333'),
+        leftIndent=0,
+        rightIndent=0
+    )
 
-    # Refine Typography Padding/Leading
-    cover_title_style.leading = 48
-    cover_title_style.spaceAfter = 30
-    
+    # Template-specific adjustments (Applied to dedicated style instances)
     if hasattr(book, 'cover_data') and book.cover_data.template == 'dark':
         cover_title_style.textColor = HexColor('#ffffff')
         cover_sub_style.textColor = HexColor('#bdc3c7')
-        cover_auth_style.textColor = HexColor('#f1c40f') # Golden author name
+        cover_auth_style.textColor = HexColor('#f1c40f') 
     elif hasattr(book, 'cover_data') and book.cover_data.template == 'classic':
         cover_title_style.textColor = HexColor('#2c1810')
         cover_sub_style.textColor = HexColor('#5d4037')
         cover_auth_style.textColor = HexColor('#2c1810')
     elif hasattr(book, 'cover_data') and book.cover_data.template == 'modern':
-        cover_title_style.alignment = TA_LEFT
-        cover_sub_style.alignment = TA_LEFT
-        cover_auth_style.alignment = TA_LEFT
-        cover_title_style.leftIndent = 40
-        cover_sub_style.leftIndent = 40
-        cover_auth_style.leftIndent = 40
+        cover_title_style.alignment = TA_CENTER
+        cover_sub_style.alignment = TA_CENTER
+        cover_auth_style.alignment = TA_CENTER
+        cover_title_style.textColor = HexColor('#333333') # Deep Charcoal
+        cover_sub_style.textColor = HexColor('#666666') # Soft Gray
+        cover_auth_style.textColor = HexColor('#333333')
+        # Standard spacing for minimalist design
+        cover_title_style.spaceAfter = 30
+        cover_sub_style.spaceAfter = 40
 
     # Cover Content
-    story.append(Spacer(1, 3.2*inch))
-    story.append(Paragraph(book.title.upper(), cover_title_style))
-    if book.subtitle:
-        story.append(Paragraph(book.subtitle, cover_sub_style))
-    
-    story.append(Spacer(1, 2.2*inch))
+    if hasattr(book, 'cover_data') and book.cover_data.template == 'modern':
+        # Centered layout for minimalist style
+        story.append(Spacer(1, 4.0*inch))
+        story.append(Paragraph(book.title.upper(), cover_title_style))
+        if book.subtitle:
+            story.append(Paragraph(book.subtitle, cover_sub_style))
+        story.append(Spacer(1, 1.0*inch))
+    else:
+        story.append(Spacer(1, 3.2*inch))
+        story.append(Paragraph(book.title.upper(), cover_title_style))
+        if book.subtitle:
+            story.append(Paragraph(book.subtitle, cover_sub_style))
+        story.append(Spacer(1, 2.2*inch))
     story.append(Paragraph(f"АВТОР: {book.author.upper()}", cover_auth_style))
     
     if book.dedication:
@@ -195,8 +231,9 @@ def generate_book_pdf(book):
             except Exception as e:
                 print(f"Error adding image: {e}") 
         
-        # Only Answer Text (Question removed as requested)
-        content_elements.append(Paragraph(page.answer.replace('\n', '<br/>'), styles['AnswerText']))
+        # Answer Text (Direct use of page.answer)
+        answer_text = page.answer.replace('\n', '<br/>')
+        content_elements.append(Paragraph(answer_text, styles['AnswerText']))
 
         story.append(KeepTogether(content_elements))
         story.append(PageBreak())
