@@ -47,6 +47,7 @@ class Book(models.Model):
     subtitle = models.CharField(max_length=255, blank=True, null=True, verbose_name="Подзаголовок")
     dedication = models.ForeignKey(BookDedication, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Посвящение")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name="Статус")
+    is_notification_sent = models.BooleanField(default=False, verbose_name="Уведомление отправлено")
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):

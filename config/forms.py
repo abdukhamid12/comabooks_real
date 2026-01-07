@@ -34,3 +34,11 @@ class BookPageForm(forms.ModelForm):
             'answer': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': 'Ваш ответ...', 'id': 'id_answer'}),
             'image': forms.ClearableFileInput(attrs={'class': 'form-control', 'id': 'id_image'}),
         }
+
+    def clean_answer(self):
+        answer = self.cleaned_data.get('answer')
+        if answer:
+            word_count = len(answer.split())
+            if word_count > 250:
+                raise forms.ValidationError(f"Превышен лимит слов! Максимум 250 слов (сейчас {word_count}).")
+        return answer

@@ -109,15 +109,18 @@ def generate_pdf(request, book_id):
 def finish_book(request, book_id):
     book = get_object_or_404(Book, id=book_id, user=request.user)
     if request.method == "POST":
+        print(f"DEBUG: finish_book POST received for book {book.id}")
         book.status = 'completed'
         book.save()
         
         # Send Telegram Notification
         try:
+            print(f"DEBUG: Generating PDF and sending notification for book {book.id}")
             pdf_buffer = generate_book_pdf(book)
             send_telegram_notification(book, pdf_buffer)
+            print(f"DEBUG: Notification task finished for book {book.id}")
         except Exception as e:
-            print(f"Error sending notification: {e}")
+            print(f"DEBUG: Error sending notification: {e}")
             # Don't block user flow if notification fails
             
     return redirect("dashboard")

@@ -37,6 +37,16 @@
                         <div class="mb-3">
                             <label class="form-label">Ваш ответ</label>
                             {{ form.answer }}
+                            <div id="word-count-info" class="form-text mt-2 d-flex justify-content-between">
+                                <span>Слов: <span id="word-count">0</span> / 250</span>
+                                <span id="word-count-error" class="text-danger" style="display: none;">Максимально 250
+                                    слов!</span>
+                            </div>
+                            {% if form.answer.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.answer.errors.0 }}
+                            </div>
+                            {% endif %}
                         </div>
 
                         <div class="mb-3">
@@ -45,7 +55,8 @@
                         </div>
 
                         <div class="d-flex justify-content-between mt-4">
-                            <button type="submit" class="btn btn-primary px-4">Сохранить и далее</button>
+                            <button type="submit" id="submit-btn" class="btn btn-primary px-4">Сохранить и
+                                далее</button>
                         </div>
                     </form>
                 </div>
@@ -126,13 +137,37 @@
     document.addEventListener('DOMContentLoaded', function () {
         const answerInput = document.getElementById('id_answer');
         const previewAnswer = document.getElementById('preview-answer');
+        const wordCountSpan = document.getElementById('word-count');
+        const wordCountError = document.getElementById('word-count-error');
+        const submitBtn = document.getElementById('submit-btn');
+
+        function updateWordCount(text) {
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            wordCountSpan.textContent = words;
+
+            if (words > 250) {
+                wordCountSpan.classList.add('text-danger', 'fw-bold');
+                wordCountError.style.display = 'block';
+                submitBtn.disabled = true;
+            } else {
+                wordCountSpan.classList.remove('text-danger', 'fw-bold');
+                wordCountError.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+            return words;
+        }
 
         if (answerInput) {
             answerInput.addEventListener('input', function () {
-                previewAnswer.textContent = this.value || 'Ваш ответ появится здесь...';
+                const text = this.value;
+                previewAnswer.textContent = text || 'Ваш ответ появится здесь...';
+                updateWordCount(text);
             });
             // Init
-            if (answerInput.value) previewAnswer.textContent = answerInput.value;
+            if (answerInput.value) {
+                previewAnswer.textContent = answerInput.value;
+                updateWordCount(answerInput.value);
+            }
         }
     });
 </script>
