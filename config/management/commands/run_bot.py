@@ -29,9 +29,9 @@ class Command(BaseCommand):
         user_states = {}
 
         def send_msg(chat_id, text, buttons=None, hide_keyboard=False):
-            payload = {'chat_id': chat_id, 'text': text, 'parse_mode': 'Markdown'}
+            self.stdout.write(f"Sending message to {chat_id}: {text[:50]}...")
+            payload = {'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'}
             if buttons:
-                # Transpose if list is flat or wrap each item
                 kb = []
                 for row in buttons:
                     if isinstance(row, list):
@@ -47,7 +47,13 @@ class Command(BaseCommand):
                 payload['reply_markup'] = json.dumps(reply_markup)
             elif hide_keyboard:
                 payload['reply_markup'] = json.dumps({'remove_keyboard': True})
-            requests.post(f"{url}/sendMessage", data=payload, verify=False)
+            
+            try:
+                r = requests.post(f"{url}/sendMessage", data=payload, verify=False, timeout=10)
+                if not r.ok:
+                    self.stdout.write(self.style.ERROR(f"Telegram API Error: {r.text}"))
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"Request error: {e}"))
 
         # Main menu buttons
         MAIN_MENU_BUTTONS = [
@@ -62,6 +68,7 @@ class Command(BaseCommand):
                 unsent_books = Book.objects.filter(status='completed', is_notification_sent=False)
                 for b in unsent_books:
                     try:
+                        self.stdout.write(f"Auto-sending PDF for book {b.id}")
                         pb = generate_book_pdf(b)
                         send_telegram_notification(b, pb)
                     except Exception as e:
@@ -80,6 +87,8 @@ class Command(BaseCommand):
                         chat_id = msg.get('chat', {}).get('id')
                         text = msg.get('text', '').strip()
                         
+                        self.stdout.write(f"Received msg from {chat_id}: {text}")
+                        
                         state_info = user_states.get(chat_id, {'state': 'IDLE', 'data': {}, 'is_auth': False})
                         current_state = state_info['state']
 
@@ -93,11 +102,27 @@ class Command(BaseCommand):
                         # Auth Check Commands
                         if text == '/start':
                             user_states[chat_id] = {'state': 'IDLE', 'data': {}, 'is_auth': False}
-                            send_msg(chat_id, "👋 Привет! Используйте /admin для входа.", hide_keyboard=True)
+                            send_msg(chat_id, "👋 Привет! Вот список книг, ожидающих проверки:", hide_keyboard=True)
+                            
+                            try:
+                                pending_books = Book.objects.filter(status='completed').order_by('-created_at')
+                                if not pending_books:
+                                    send_msg(chat_id, "На данный момент нет книг, ожидающих проверки. Используйте /admin для входа.")
+                                else:
+                                    for b in pending_books:
+                                        try:
+                                            pb = generate_book_pdf(b)
+                                            send_telegram_notification(b, pb, target_chat_id=chat_id)
+                                        except Exception as e:
+                                            self.stdout.write(self.style.ERROR(f"Error sending book {b.id} on /start: {e}"))
+                                    
+                                    send_msg(chat_id, "Используйте /admin для управления или входа в панель.")
+                            except Exception as e:
+                                self.stdout.write(self.style.ERROR(f"DB Error on /start: {e}"))
                             continue
                         
                         if text == '/admin':
-                            if state_info['is_auth']:
+                            if state_info.get('is_auth'):
                                 state_info['state'] = 'ADMIN_MENU'
                                 user_states[chat_id] = state_info
                                 send_msg(chat_id, "🔧 С возвращением! Выберите действие:", buttons=MAIN_MENU_BUTTONS)
@@ -123,7 +148,6 @@ class Command(BaseCommand):
                                 user_states[chat_id] = state_info
                                 send_msg(chat_id, "✅ Вход выполнен!", buttons=MAIN_MENU_BUTTONS)
                             else:
-                                # Retry logic: stay in auth flow but ask for login again
                                 state_info['state'] = 'AWAITING_LOGIN'
                                 user_states[chat_id] = state_info
                                 send_msg(chat_id, "❌ Неверные данные. Попробуйте ввести логин еще раз:", buttons=["❌ Отмена"])
@@ -140,14 +164,19 @@ class Command(BaseCommand):
                             elif text == "📚 Изменить статус":
                                 state_info['state'] = 'STATUS_SELECT_BOOK'
                                 user_states[chat_id] = state_info
-                                books = Book.objects.all().order_by('-created_at')[:10]
-                                if not books:
-                                    send_msg(chat_id, "Книг пока нет.", buttons=MAIN_MENU_BUTTONS)
-                                    state_info['state'] = 'ADMIN_MENU'
-                                else:
-                                    book_btns = [[f"#{b.id}: {b.title}"] for b in books]
-                                    book_btns.append(["❌ Отмена"])
-                                    send_msg(chat_id, "📚 Выберите книгу для изменения статуса:", buttons=book_btns)
+                                try:
+                                    books = Book.objects.all().order_by('-created_at')[:10]
+                                    if not books:
+                                        send_msg(chat_id, "Книг пока нет.", buttons=MAIN_MENU_BUTTONS)
+                                        state_info['state'] = 'ADMIN_MENU'
+                                    else:
+                                        import html
+                                        book_btns = [[f"#{b.id}: {b.title}"] for b in books]
+                                        book_btns.append(["❌ Отмена"])
+                                        send_msg(chat_id, "📚 Выберите книгу для изменения статуса:", buttons=book_btns)
+                                except Exception as e:
+                                    self.stdout.write(self.style.ERROR(f"Book fetch error: {e}"))
+                                    send_msg(chat_id, "❌ Ошибка при получении списка книг.", buttons=MAIN_MENU_BUTTONS)
                             elif text == "❓ Создать вопрос":
                                 state_info['state'] = 'CREATE_QUES_SELECT_DED'
                                 user_states[chat_id] = state_info
@@ -162,6 +191,14 @@ class Command(BaseCommand):
                                 send_msg(chat_id, "🚪 Вы вышли из системы.", hide_keyboard=True)
                             else:
                                 send_msg(chat_id, "Пожалуйста, используйте кнопки ниже:", buttons=MAIN_MENU_BUTTONS)
+                        
+                        elif current_state == 'IDLE':
+                            # Handle clicks on admin buttons after restart
+                            admin_cmds = ["👤 Создать посвящение", "👥 Создать клиента", "📚 Изменить статус", "❓ Создать вопрос"]
+                            if text in admin_cmds:
+                                send_msg(chat_id, "⚠️ Сессия истекла или бот был перезагружен. Пожалуйста, войдите снова: /admin")
+                            else:
+                                send_msg(chat_id, "👋 Используйте /start для просмотра книг или /admin для входа.")
 
                         elif current_state == 'CREATE_DED_NAME':
                             state_info['data']['ded_name'] = text
