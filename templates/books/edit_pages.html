@@ -37,8 +37,17 @@
                         <div class="mb-3">
                             <label class="form-label">Ваш ответ</label>
                             {{ form.answer }}
-                            <div id="word-count-info" class="form-text mt-2 d-flex justify-content-between">
+                            <div id="word-count-info"
+                                class="form-text mt-2 d-flex justify-content-between align-items-center">
                                 <span>Слов: <span id="word-count">0</span> / 250</span>
+                                {% if ai_settings.is_ai_enabled %}
+                                <button type="button" id="enhance-ai-btn"
+                                    class="btn btn-sm btn-outline-primary border-0">
+                                    <span id="ai-btn-text">✨ Улучшить с помощью ИИ</span>
+                                    <span id="ai-btn-spinner" class="spinner-border spinner-border-sm"
+                                        style="display: none;"></span>
+                                </button>
+                                {% endif %}
                                 <span id="word-count-error" class="text-danger" style="display: none;">Максимально 250
                                     слов!</span>
                             </div>
@@ -163,6 +172,57 @@
                 previewAnswer.textContent = text || 'Ваш ответ появится здесь...';
                 updateWordCount(text);
             });
+
+            // AI Enhancement
+            const enhanceBtn = document.getElementById('enhance-ai-btn');
+            const aiBtnText = document.getElementById('ai-btn-text');
+            const aiBtnSpinner = document.getElementById('ai-btn-spinner');
+
+            enhanceBtn.addEventListener('click', async function () {
+                const currentAnswer = answerInput.value.trim();
+                const questionText = document.querySelector('h3.mb-4').textContent;
+
+                if (!currentAnswer) {
+                    alert('Пожалуйста, напишите сначала хотя бы короткий ответ.');
+                    return;
+                }
+
+                // UI Loading state
+                enhanceBtn.disabled = true;
+                aiBtnText.style.display = 'none';
+                aiBtnSpinner.style.display = 'inline-block';
+
+                try {
+                    const response = await fetch('{% url "enhance_answer_ajax" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            question: questionText,
+                            answer: currentAnswer
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        answerInput.value = data.enhanced_text;
+                        previewAnswer.textContent = data.enhanced_text;
+                        updateWordCount(data.enhanced_text);
+                    } else {
+                        alert('Ошибка ИИ: ' + data.error);
+                    }
+                } catch (error) {
+                    console.error('AI Error:', error);
+                    alert('Произошла ошибка при обращении к ИИ.');
+                } finally {
+                    enhanceBtn.disabled = false;
+                    aiBtnText.style.display = 'inline-block';
+                    aiBtnSpinner.style.display = 'none';
+                }
+            });
+
             // Init
             if (answerInput.value) {
                 previewAnswer.textContent = answerInput.value;

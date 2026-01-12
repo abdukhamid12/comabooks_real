@@ -28,6 +28,7 @@ TEMPLATE_CHOICES = [
 # 4. Вопрос (для каталога вопросов)
 class BookPageQuestion(models.Model):
     dedication = models.ForeignKey(BookDedication, on_delete=models.CASCADE, related_name="questions", null=True, blank=True, verbose_name="Для кого (посвящение)")
+    book = models.ForeignKey('Book', on_delete=models.CASCADE, related_name="custom_questions", null=True, blank=True, verbose_name="Для книги")
     quiz = models.CharField(max_length=255, verbose_name="Вопрос")
 
     def __str__(self):
@@ -87,3 +88,22 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Отзыв от {self.user.username} ({self.rating}/5)"
+
+
+# 9. Настройки ИИ
+class AISettings(models.Model):
+    gemini_api_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="Gemini API Key")
+    ai_question_count = models.IntegerField(default=5, verbose_name="Количество вопросов ИИ")
+    is_ai_enabled = models.BooleanField(default=True, verbose_name="ИИ включен")
+
+    class Meta:
+        verbose_name = "Настройки ИИ"
+        verbose_name_plural = "Настройки ИИ"
+
+    def __str__(self):
+        return "Настройки ИИ"
+
+    def save(self, *args, **kwargs):
+        if not self.pk and AISettings.objects.exists():
+            return
+        return super(AISettings, self).save(*args, **kwargs)

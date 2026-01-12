@@ -1,9 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import FileResponse
-from .models import Book, BookPageAnswer, BookCover, BookPageQuestion, Review
+from .models import Book, BookPageAnswer, BookCover, BookPageQuestion, Review, AISettings
 from .forms import BookForm, BookPageForm
-from .utils import generate_book_pdf, send_telegram_notification
+from .utils import generate_book_pdf, send_telegram_notification, generate_questions_ai, enhance_answer_ai
+from django.http import FileResponse, JsonResponse
 import io
 import os
 from django.conf import settings
@@ -47,10 +47,33 @@ def edit_pages(request, book_id):
     book = get_object_or_404(Book, id=book_id, user=request.user)
     
     # Get questions
-    if book.dedication:
-        questions = book.dedication.questions.all()
-    else:
-        questions = BookPageQuestion.objects.filter(dedication__isnull=True)
+    # 1. First check if book has its own custom questions (AI-generated for this user)
+    questions = book.custom_questions.all()
+    
+    # 2. If no book-specific questions, check dedication questions (manually added by admin)
+    if not questions.exists() and book.dedication:
+        questions = book.dedication.questions.filter(book__isnull=True)
+    
+    # 3. If STILL no questions and AI is enabled, generate unique ones for this book
+    if not questions.exists() and book.dedication:
+        ai_settings = AISettings.objects.first()
+        if ai_settings and ai_settings.is_ai_enabled and ai_settings.gemini_api_key:
+            generated_questions = generate_questions_ai(
+                book.dedication.name,
+                book.dedication.text,
+                count=ai_settings.ai_question_count,
+                api_key=ai_settings.gemini_api_key
+            )
+            for q_text in generated_questions:
+                BookPageQuestion.objects.create(
+                    book=book, # Link to book for uniqueness
+                    quiz=q_text
+                )
+            questions = book.custom_questions.all()
+    
+    # fallback to generic questions if nothing else works
+    if not questions.exists():
+        questions = BookPageQuestion.objects.filter(dedication__isnull=True, book__isnull=True)
     
     # Determine active question
     question_id = request.GET.get('q')
@@ -83,11 +106,15 @@ def edit_pages(request, book_id):
     else:
         form = BookPageForm(instance=current_answer)
 
+    # Get AI settings for UI toggles
+    ai_settings = AISettings.objects.first()
+    
     return render(request, "books/edit_pages.html", {
         "book": book, 
         "questions": questions, 
         "active_question": active_question,
-        "form": form
+        "form": form,
+        "ai_settings": ai_settings,
     })
 
 
@@ -132,3 +159,21 @@ def delete_book(request, book_id):
     if request.method == "POST":
         book.delete()
     return redirect("dashboard")
+
+
+@login_required
+def enhance_answer_ajax(request):
+    if request.method == "POST":
+        import json
+        data = json.loads(request.body)
+        question = data.get('question')
+        answer = data.get('answer')
+        
+        ai_settings = AISettings.objects.first()
+        if not ai_settings or not ai_settings.is_ai_enabled or not ai_settings.gemini_api_key:
+            return JsonResponse({'success': False, 'error': 'AI is disabled or not configured'})
+            
+        enhanced_text = enhance_answer_ai(question, answer, ai_settings.gemini_api_key)
+        return JsonResponse({'success': True, 'enhanced_text': enhanced_text})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'})

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import BookDedication, BookCover, BookPageQuestion, BookPageAnswer, Book, CustomUser, Review
+from .models import BookDedication, BookCover, BookPageQuestion, BookPageAnswer, Book, CustomUser, Review, AISettings
 from django.utils.html import format_html
 
 @admin.register(CustomUser)
@@ -60,3 +60,13 @@ class BookPageAnswerAdmin(admin.ModelAdmin):
         return obj.answer[:50]
 
     short_answer.short_description = "Ответ"
+
+
+@admin.register(AISettings)
+class AISettingsAdmin(admin.ModelAdmin):
+    list_display = ('gemini_api_key', 'ai_question_count', 'is_ai_enabled')
+
+    def has_add_permission(self, request):
+        if self.model.objects.exists():
+            return False
+        return super().has_add_permission(request)
